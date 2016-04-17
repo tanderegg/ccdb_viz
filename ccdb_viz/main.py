@@ -217,6 +217,8 @@ def update(attrname, old, new):
         issue_widget.value, min_complaints_widget.value
     )
 
+    # State data does not get dynamically updated, due to a lack of
+    # support from the Bar model.
     state_data = build_state_data(
         where_inner = where_inner,
         where_outer = where_outer
