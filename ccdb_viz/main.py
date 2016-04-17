@@ -168,7 +168,7 @@ def build_zip_data(where_inner="", where_outer=""):
     cur.execute(query)
     cc_by_zip = DataFrame(cur.fetchall(), columns = [
                           'zip_code', 'complaint_count', 'median_income'])
-    cc_by_zip.set_index('zip_code')
+    cc_by_zip.set_index('zip_code', drop=False)
 
     # There are over 20,000 zip codes, so let's just take a sample, if needed
     if len(cc_by_zip.index) > 5000:
