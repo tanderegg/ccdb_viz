@@ -1,0 +1,14 @@
+---
+- name: Install pip and dependencies
+  yum:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - "@Development tools"
+    - python-pip
+    - python-devel
+
+- name: Install virtualenv
+  pip:
+    name: virtualenv
+    state: present

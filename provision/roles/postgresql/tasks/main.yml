@@ -1,0 +1,37 @@
+---
+- name: Install PostgreSQL repository
+  yum:
+    name: http://yum.postgresql.org/9.5/redhat/rhel-7-x86_64/pgdg-centos95-9.5-2.noarch.rpm
+    state: present
+  register: result
+  until: "'failed' not in result"
+  retries: 5
+  delay: 10
+
+- name: Install PostgreSQL packages
+  yum:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - "postgresql95-server"
+    - "postgresql95"
+    - "postgresql95-devel"
+    - "postgresql95-libs"
+
+- name: Initialize database
+  become: yes
+  become_user: postgres
+  command: "/usr/pgsql-9.5/bin/initdb -D /var/lib/pgsql/9.5/data"
+  args:
+    creates: /var/lib/pgsql/9.5/data/pg_log
+
+- name: Ensure PostgreSQL is started
+  service:
+    name: postgresql-9.5
+    state: started
+    enabled: yes
+
+- name: Add PostgreSQL path to system path
+  copy:
+    dest: /etc/profile.d/postgresql.sh
+    content: "export PATH=/usr/pgsql-9.5/bin:$PATH"
