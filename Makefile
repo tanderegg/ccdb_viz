@@ -54,5 +54,5 @@ deploy: provision
 
 run:
 	@echo -e "\033[1;34mRunning application server...\033[0m"
-	vagrant ssh -c "cd /vagrant/ccdb_viz && ~/.virtualenvs/ccdb_viz/bin/bokeh serve --show main.py --address=0.0.0.0 --host=192.168.56.2:5006"
+	vagrant ssh -c "cd /vagrant/ccdb_viz && ~/.virtualenvs/ccdb_viz/bin/bokeh serve --show main.py --address=0.0.0.0 --host=localhost:5006"
 	@echo -e "\033[0;32mDemo completed! I hope you enjoyed it.\033[0m"

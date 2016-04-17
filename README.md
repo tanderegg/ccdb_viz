@@ -18,7 +18,7 @@ If you'd rather recreate the application from source, and experience the fully i
 1. Check to see if you have [Vagrant](http://www.vagrantup.com) and [Ansible](http://www.ansible.com) installed.  If you have pip available, the build process will install Ansible for you if it is not already installed, but Vagrant must be installed via your system package manager.
 1. After cloning this repository, change your directory to the ccdb_viz folder, and run `make`.
 1. Make will provision a virtual machine with PostgreSQL and some python libraries and tools, then download, extract, transform, and load the required datasets. Lastly, it will deploy and execute the ccdb_viz application. Please be patient, as installing Pandas and Numpy can take some time.
-1. The application will be viewable at http://192.168.56.1:5006/main on your host machine once Make has finished.  Your terminal window should display the standard output of the Bokeh server as it runs.
+1. The application will be viewable at http://localhost:5006/main on your host machine once Make has finished.  Your terminal window should display the standard output of the Bokeh server as it runs.
 
 ## Implementation Notes and Troubleshooting
 
