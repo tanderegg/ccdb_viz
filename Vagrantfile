@@ -3,12 +3,13 @@
 Vagrant.configure("2") do |config|
   config.vm.box = "bento/centos-7.1"
   config.vm.hostname = "cfpb.box"
-  config.vm.network :private_network, ip: "10.0.1.2"
+  config.vm.network :private_network, ip: "192.168.56.2"
 
   config.vm.provider :virtualbox do |vb|
     vb.customize [
       "modifyvm", :id,
-      "--memory", "2048"
+      "--memory", "2048",
+      "--cpus", "2"
     ]
   end
 

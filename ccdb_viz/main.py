@@ -8,8 +8,9 @@ from pandas.io import sql
 from bokeh.plotting import Figure
 from bokeh.charts import Bar
 from bokeh.io import curdoc
-from bokeh.models import ColumnDataSource, VBox, HBox, VBoxForm, Axis
-from bokeh.models.widgets import TextInput, Select, Slider
+from bokeh.models import ColumnDataSource, VBox, HBox, VBoxForm, Axis, Range1d
+from bokeh.models.widgets import (TextInput, Select, Slider, DataTable,
+                                  TableColumn)
 
 ### SQL Queries
 
@@ -30,7 +31,31 @@ ISSUE_NAMES = """
 
 TOTAL_COMPLAINTS = """
     SELECT COUNT(*) FROM ccdb
-    {}
+    {0}
+    """
+
+TOTAL_ZIPS = """
+    SELECT COUNT(DISTINCT(zip_code)) FROM ccdb
+    {0}
+    """
+
+MEAN_MEDIAN_INCOME = """
+    SELECT AVG(B06011_001) AS mean_median_income FROM
+    ((SELECT zcta5, B06011_001 FROM e20135us0015000
+        INNER JOIN g20135us
+            ON e20135us0015000.logrecno=g20135us.logrecno
+        WHERE g20135us.zcta5 IS NOT NULL) AS median_income
+    INNER JOIN
+    (SELECT zip_code FROM ccdb
+        {0}) AS ccdb_zips
+    ON median_income.zcta5=ccdb_zips.zip_code) AS median_income_ccdb
+    """
+
+MEAN_COMPLAINTS_PER_ZIP = """
+    SELECT AVG(complaint_count) FROM
+        (SELECT zip_code, COUNT(*) AS complaint_count FROM ccdb
+            {0}
+            GROUP BY zip_code) AS counts_per_zip
     """
 
 COMPLAINTS_WITH_MEDIAN_INCOME = """
@@ -55,24 +80,6 @@ COMPLAINTS_BY_STATE = """
          {0}
          GROUP BY state) AS complaints
     {1}
-    """
-
-DISTINCT_MATCHED_ZIPCODES = """
-    SELECT DISTINCT(zcta5) FROM ccdb
-        INNER JOIN g20135us
-            ON ccdb.zip_code=g20135us.zcta5;
-    """
-
-SUMMARY_DATA_BY_STATE = """
-    SELECT * FROM
-        (SELECT state, COUNT(*) AS complaint_count FROM ccdb
-        INNER JOIN g20135us
-            ON ccdb.zip_code=g20135us.zcta5
-        INNER JOIN e20135us0015000
-            ON g20135us.logrecno=e20135us0015000.logrecno
-        {})
-    {}
-    GROUP BY ccdb.state
     """
 
 ### Step 1: Prepare initial data sources
@@ -105,6 +112,7 @@ issue_names.insert(0, "All")
 # Create data source for state totals
 state_source = ColumnDataSource(data=dict())
 zip_source = ColumnDataSource(data=dict(x=[], y=[]))
+table_source = ColumnDataSource(data=dict(labels=[], data=[]))
 
 ### Step 2: Build the UI
 
@@ -183,6 +191,23 @@ def build_zip_data(where_inner="", where_outer=""):
 
     return cc_by_zip
 
+def build_data_table(where_inner=""):
+    cur.execute(TOTAL_COMPLAINTS.format(where_inner))
+    total_complaints = cur.fetchone()
+    cur.execute(TOTAL_ZIPS.format(where_inner))
+    total_zips = cur.fetchone()
+    cur.execute(MEAN_MEDIAN_INCOME.format(where_inner))
+    mean_median_income = cur.fetchone()
+    cur.execute(MEAN_COMPLAINTS_PER_ZIP.format(where_inner))
+    mean_complaints = cur.fetchone()
+
+    summary_data = dict(
+        labels = ["Total complaints", "Total zip codes", "Average median income", "Average complaint count"],
+        data = [total_complaints, total_zips, mean_median_income, mean_complaints]
+    )
+
+    return summary_data
+
 def update(attrname, old, new):
     """
     Update the data sources using the generated where clause
@@ -212,6 +237,8 @@ def update(attrname, old, new):
         y=zip_data["complaint_count"]
     )
 
+    table_source.data = build_data_table(where_inner)
+
 state_widget.on_change('value', update)
 product_widget.on_change('value', update)
 issue_widget.on_change('value', update)
@@ -231,11 +258,21 @@ zip_source.data = dict(x = zip_data["median_income"],
                        y = zip_data["complaint_count"])
 zip_scatter_plot = Figure(plot_height=500, plot_width=1000,
                           title="Complaints by Median Income",
-                          title_text_font_size='14pt')
+                          title_text_font_size='14pt', x_range=Range1d(0,100000))
 zip_scatter_plot.circle(x="x", y="y", source=zip_source, size=4,
                         color="#addc91", line_color=None, fill_alpha="0.95")
 zip_xaxis = zip_scatter_plot.select(dict(type=Axis, layout="below"))[0]
 zip_xaxis.formatter.use_scientific = False
+
+# Build the data table
+columns = [
+    TableColumn(field="labels", title="Label"),
+    TableColumn(field="data", title="Data")
+]
+
+data_table = DataTable(source=table_source, columns=columns,
+                       height=150, width=250)
+table_source.data = build_data_table()
 
 ### Step 4: Construct the document
 
@@ -245,7 +282,10 @@ zip_xaxis.formatter.use_scientific = False
 curdoc().clear()
 
 controls = HBox(
-    VBoxForm(min_complaints_widget, state_widget, product_widget, issue_widget),
+    VBox(
+        data_table,
+        VBoxForm(min_complaints_widget, state_widget, product_widget, issue_widget)
+    ),
     width=250
 )
 
